@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
+  const { user, signOut } = useAuth();
+
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,12 +32,26 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center space-x-3">
-            <Button variant="ghost" asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-            <Button asChild className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-              <Link to="/register">Get Started</Link>
-            </Button>
+            {user ? (
+              <>
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  Welcome back!
+                </span>
+                <Button variant="ghost" onClick={signOut}>
+                  <i className="fas fa-sign-out-alt mr-2"></i>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button asChild className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+                  <Link to="/register">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
