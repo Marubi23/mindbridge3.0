@@ -1,9 +1,12 @@
 // src/pages/PsychiatristDashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { appointmentService, sessionService, assessmentService } from '../services/supabase';
+import { appointmentService } from '../services/appointmentService'; // Changed to singular
+import { sessionServices } from '../services/sessionServices';
+import { assessmentServices} from '../services/assessmentService'; // Changed to singular
 import { Appointment, Session, Assessment } from '../types';
 import { Calendar, Users, FileText, Video, Bell } from 'lucide-react';
+import { CreateAssessmentModal } from '../components/assessments/CreateAssessmentModal';
 
 export const PsychiatristDashboard: React.FC = () => {
   const { user, profile } = useAuth();
@@ -24,8 +27,8 @@ export const PsychiatristDashboard: React.FC = () => {
     try {
       const [apptsData, sessionsData, assessmentsData] = await Promise.all([
         appointmentService.getPsychiatristAppointments(user!.id),
-        sessionService.getActiveSessions(user!.id),
-        assessmentService.getPsychiatristAssessments(user!.id)
+        sessionServices.getActiveSessions(user!.id),
+        assessmentServices.getPsychiatristAssessments(user!.id) // Fixed: singular
       ]);
       setAppointments(apptsData);
       setActiveSessions(sessionsData);
@@ -39,7 +42,7 @@ export const PsychiatristDashboard: React.FC = () => {
 
   const subscribeToRealtime = () => {
     // Subscribe to session changes
-    const subscription = sessionService.subscribeToSessions(user!.id, (session) => {
+    const subscription = sessionServices.subscribeToSessions(user!.id, (session: Session) => {
       if (session.status === 'live') {
         setActiveSessions(prev => [...prev, session]);
       } else if (session.status === 'ended') {
@@ -52,19 +55,24 @@ export const PsychiatristDashboard: React.FC = () => {
 
   const startSession = async (appointmentId: string) => {
     try {
-      const session = await sessionService.startSession(appointmentId);
+      const session = await sessionServices.startSession(appointmentId);
       setActiveSessions(prev => [...prev, session]);
       
       // Send notification to client
-      await sessionService.notifySessionStart(appointmentId);
+      await sessionServices.notifySessionStart(appointmentId);
     } catch (error) {
       console.error('Error starting session:', error);
     }
   };
 
-  const createAssessment = async (assessmentData: Omit<Assessment, 'id' | 'created_at'>) => {
+  const createAssessment = async (assessmentData: {
+    title: string;
+    description: string;
+    questions: any[];
+    client_id: string;
+  }) => {
     try {
-      const newAssessment = await assessmentService.createAssessment({
+      const newAssessment = await assessmentServices.createAssessment({ // Fixed: singular
         ...assessmentData,
         psychiatrist_id: user!.id
       });

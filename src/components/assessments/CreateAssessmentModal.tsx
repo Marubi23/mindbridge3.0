@@ -1,18 +1,35 @@
-// src/components/assessments/CreateAssessmentModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Assessment, Question } from '../../types';
 import { X, Plus, Trash2 } from 'lucide-react';
 
 interface CreateAssessmentModalProps {
-  onSubmit: (assessment: Omit<Assessment, 'id' | 'created_at'>) => void;
+  onSubmit: (assessmentData: {
+    title: string;
+    description: string;
+    questions: any[];
+    client_id: string;
+  }) => void;
   onClose: () => void;
 }
 
 export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ onSubmit, onClose }) => {
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedClient, setSelectedClient] = useState('');
   const [questions, setQuestions] = useState<Question[]>([
     { id: '1', question: '', type: 'text', options: [] }
   ]);
+  const [clients, setClients] = useState<any[]>([]);
+
+  // Mock clients - replace with actual API call
+  useEffect(() => {
+    // TODO: Fetch actual clients from your database
+    const mockClients = [
+      { id: '1', first_name: 'John', last_name: 'Doe', email: 'john@example.com' },
+      { id: '2', first_name: 'Jane', last_name: 'Smith', email: 'jane@example.com' },
+    ];
+    setClients(mockClients);
+  }, []);
 
   const addQuestion = () => {
     setQuestions(prev => [...prev, {
@@ -35,10 +52,24 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ on
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedClient) {
+      alert('Please select a client');
+      return;
+    }
+
+    // Transform questions to match what the service expects
+    const transformedQuestions = questions.map(q => ({
+      question: q.question,
+      type: q.type,
+      options: q.options || []
+    }));
+
     onSubmit({
       title,
-      questions,
-      client_id: '' // Will be set when assigned to a client
+      description: description || 'No description provided',
+      questions: transformedQuestions,
+      client_id: selectedClient
     });
   };
 
@@ -53,20 +84,55 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ on
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Client Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Assessment Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Client *
+            </label>
+            <select
+              value={selectedClient}
+              onChange={(e) => setSelectedClient(e.target.value)}
+              className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              required
+            >
+              <option value="">Choose a client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.first_name} {client.last_name} ({client.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Assessment Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Assessment Title *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              placeholder="e.g., Depression Screening, Anxiety Assessment"
               required
             />
           </div>
 
+          {/* Assessment Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              placeholder="Describe the purpose and focus of this assessment..."
+              rows={3}
+            />
+          </div>
+
+          {/* Questions Section */}
           <div>
             <div className="flex justify-between items-center mb-4">
-              <label className="block text-sm font-medium text-gray-700">Questions</label>
+              <label className="block text-sm font-medium text-gray-700">Questions *</label>
               <button
                 type="button"
                 onClick={addQuestion}
@@ -173,6 +239,7 @@ export const CreateAssessmentModal: React.FC<CreateAssessmentModalProps> = ({ on
             <button
               type="submit"
               className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+              disabled={!title || !selectedClient || questions.some(q => !q.question.trim())}
             >
               Create Assessment
             </button>

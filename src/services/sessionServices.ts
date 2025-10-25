@@ -2,7 +2,7 @@
 import { supabase } from './supabase';
 import { Session } from '../types';
 
-export const sessionService = {
+export const sessionServices = {
   async startSession(appointmentId: string): Promise<Session> {
     const { data, error } = await supabase
       .from('sessions')

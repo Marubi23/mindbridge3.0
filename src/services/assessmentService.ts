@@ -1,52 +1,78 @@
 // src/services/assessmentService.ts
 import { supabase } from './supabase';
-import { Assessment, AssessmentResponse } from '../types';
 
-export const assessmentService = {
-  async createAssessment(assessmentData: Omit<Assessment, 'id' | 'created_at'>): Promise<Assessment> {
+export const assessmentServices = {
+  // Create a new assessment
+  async createAssessment(assessmentData: {
+    title: string;
+    description: string;
+    questions: any[];
+    psychiatrist_id: string;
+    client_id: string;
+  }) {
     const { data, error } = await supabase
       .from('assessments')
       .insert([assessmentData])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
 
-  async getPsychiatristAssessments(psychiatristId: string): Promise<Assessment[]> {
+  // Get assessments for a psychiatrist
+  async getPsychiatristAssessments(psychiatristId: string) {
     const { data, error } = await supabase
       .from('assessments')
       .select('*')
       .eq('psychiatrist_id', psychiatristId)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data;
   },
 
-  async getClientAssessments(clientId: string): Promise<Assessment[]> {
+  // Get assessments for a client
+  async getClientAssessments(clientId: string) {
     const { data, error } = await supabase
       .from('assessments')
       .select('*')
       .eq('client_id', clientId)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data;
   },
 
-  async submitResponse(responseData: Omit<AssessmentResponse, 'id' | 'submitted_at'>): Promise<AssessmentResponse> {
+  // Update assessment
+  async updateAssessment(assessmentId: string, updates: any) {
     const { data, error } = await supabase
-      .from('assessment_responses')
-      .insert([{
-        ...responseData,
-        submitted_at: new Date().toISOString()
-      }])
+      .from('assessments')
+      .update(updates)
+      .eq('id', assessmentId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
+  },
+
+  // Delete assessment
+  async deleteAssessment(assessmentId: string) {
+    const { error } = await supabase
+      .from('assessments')
+      .delete()
+      .eq('id', assessmentId);
+
+    if (error) throw error;
   }
 };
+
+// Alternative: If you prefer individual named exports instead of a service object
+export const createAssessment = assessmentServices.createAssessment;
+export const getPsychiatristAssessments = assessmentServices.getPsychiatristAssessments;
+export const getClientAssessments = assessmentServices.getClientAssessments;
+export const updateAssessment = assessmentServices.updateAssessment;
+export const deleteAssessment = assessmentServices.deleteAssessment;
+
+export default assessmentServices;

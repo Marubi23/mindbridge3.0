@@ -1,98 +1,76 @@
-// src/services/supabase.ts
-import { Appointment } from '@/types';
-import { createClient } from '@supabase/supabase-js';
+// src/services/supabase.ts - TEMPORARY MOCK VERSION
+import { User, UserRole } from '../types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Mock Supabase client that doesn't throw errors
+export const supabase = {
+  auth: {
+    signUp: async () => ({ 
+      data: { user: { id: 'mock-user-id' } }, 
+      error: null 
+    }),
+    signInWithPassword: async () => ({ 
+      data: { user: { id: 'mock-user-id' } }, 
+      error: null 
+    }),
+    signOut: async () => ({ error: null }),
+    getUser: async () => ({ data: { user: null }, error: null }),
+    onAuthStateChange: (callback: any) => {
+      // Simulate being logged out initially
+      setTimeout(() => callback('SIGNED_OUT', null), 100);
+      return { 
+        data: { subscription: { unsubscribe: () => {} } } 
+      };
+    },
+  },
+  from: (table: string) => ({
+    select: () => ({
+      eq: () => ({
+        single: async () => ({ data: null, error: null })
+      })
+    }),
+    insert: () => ({
+      select: () => ({
+        single: async () => ({ data: null, error: null })
+      })
+    })
+  })
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Auth service
+// Mock auth service
 export const authService = {
-  async signUp(email: string, password: string, userData: Partial<User> & { role: UserRole }) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          phone: userData.phone,
-        }
-      }
-    });
-
-    if (error) throw error;
-    
-    // Add user role
-    if (data.user) {
-      await supabase
-        .from('user_roles')
-        .insert([{ user_id: data.user.id, role: userData.role }]);
-    }
-
-    return data;
+  async signUp(email: string, password: string, userData: any) {
+    console.log('Mock signUp called:', email);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { user: { id: 'mock-user-id' } };
   },
-
+  
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    return data;
+    console.log('Mock signIn called:', email);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { user: { id: 'mock-user-id' } };
   },
-
+  
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    console.log('Mock signOut called');
   },
-
+  
   async getCurrentUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    return null; // Start with no user logged in
   }
 };
 
-// Appointment service
+// Mock other services
 export const appointmentService = {
-  async createAppointment(appointmentData: Omit<Appointment, 'id' | 'created_at' | 'clients' | 'psychiatrists'>) {
-    const { data, error } = await supabase
-      .from('appointments')
-      .insert([appointmentData])
-      .select(`
-        *,
-        clients:client_id(*),
-        psychiatrists:psychiatrist_id(*)
-      `)
-      .single();
-    if (error) throw error;
-    return data;
-  },
+  getPsychiatristAppointments: async () => [],
+};
 
-  async getClientAppointments(clientId: string) {
-    const { data, error } = await supabase
-      .from('appointments')
-      .select(`
-        *,
-        psychiatrists:psychiatrist_id(*)
-      `)
-      .eq('client_id', clientId)
-      .order('scheduled_for', { ascending: true });
-    if (error) throw error;
-    return data;
-  },
+export const sessionServices = {
+  getActiveSessions: async () => [],
+  subscribeToSessions: () => ({ unsubscribe: () => {} })
+};
 
-  async getPsychiatristAppointments(psychiatristId: string) {
-    const { data, error } = await supabase
-      .from('appointments')
-      .select(`
-        *,
-        clients:client_id(*)
-      `)
-      .eq('psychiatrist_id', psychiatristId)
-      .order('scheduled_for', { ascending: true });
-    if (error) throw error;
-    return data;
-  }
+export const assessmentService = {
+  getPsychiatristAssessments: async () => [],
+  createAssessment: async () => ({ id: 'mock-assessment' })
 };

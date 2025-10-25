@@ -5,34 +5,45 @@ import { supabase } from './supabase';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 export const paymentService = {
-  async createCheckoutSession(appointmentId: string, amount: number) {
-    const { data: session, error } = await supabase.functions.invoke('create-checkout-session', {
-      body: { appointmentId, amount }
-    });
+  async createCheckoutSession(priceId: string, userId: string, appointmentId: string) {
+    try {
+      // For now, use a mock implementation since we don't have backend setup
+      console.log('Creating checkout session for:', { priceId, userId, appointmentId });
+      
+      // Mock session ID for development
+      const mockSessionId = `cs_mock_${Date.now()}`;
+      
+      // Store booking data for success page
+      localStorage.setItem('lastBookingSessionId', mockSessionId);
+      localStorage.setItem('lastBookingAppointmentId', appointmentId);
+      
+      // Use the new Stripe redirect method
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error('Stripe failed to load');
 
-    if (error) throw error;
+      // For development, just redirect to success page
+      window.location.href = `/payment/success?session_id=${mockSessionId}`;
+      
+      return { sessionId: mockSessionId };
 
-    const stripe = await stripePromise;
-    if (!stripe) throw new Error('Stripe failed to load');
-
-    const result = await stripe.redirectToCheckout({
-      sessionId: session.id
-    });
-
-    if (result.error) {
-      throw result.error;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      throw error;
     }
   },
 
-  async handlePaymentSuccess(sessionId: string) {
-    const { data, error } = await supabase
-      .from('appointments')
-      .update({ status: 'confirmed', payment_status: 'paid' })
-      .eq('stripe_session_id', sessionId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+  async getPaymentStatus(sessionId: string) {
+    try {
+      // Mock payment status for development
+      return {
+        status: 'paid',
+        amount: 12000,
+        currency: 'usd',
+        sessionId: sessionId
+      };
+    } catch (error) {
+      console.error('Error getting payment status:', error);
+      throw error;
+    }
   }
 };
