@@ -33,7 +33,7 @@ const About = () => {
             
             <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-strong">
               <img 
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80" 
+                src="https://images.unsplash.com" 
                 alt="Team collaboration" 
                 className="w-full h-full object-cover"
               />
