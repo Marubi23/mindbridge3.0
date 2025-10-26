@@ -59,7 +59,7 @@ const Contact = () => {
       icon: 'fas fa-map-marker-alt',
       title: 'Visit Us',
       description: 'Our main office location',
-      contact: '123 Wellness St, City, State 12345',
+      contact: 'UpperHill, street101',
       action: '#map',
       gradient: 'from-orange-500 to-red-500'
     }

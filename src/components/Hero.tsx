@@ -25,7 +25,7 @@ const Hero = () => {
             </h1>
             
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Connect with licensed psychiatrists, book appointments seamlessly, and receive personalized care in a secure, supportive environment.
+              Connect with licensed psychologists, book appointments seamlessly, and receive personalized care in a secure, supportive environment.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">

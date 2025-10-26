@@ -23,7 +23,7 @@ const About = () => {
               <p className="text-muted-foreground">
                 At MindBridge, we believe that quality mental health care should be accessible, 
                 convenient, and tailored to individual needs. Our platform connects clients with 
-                licensed psychiatrists, making professional mental health support available at your fingertips.
+                licensed psychologists, making professional mental health support available at your fingertips.
               </p>
               <p className="text-muted-foreground">
                 We're committed to breaking down barriers to mental health care through technology, 

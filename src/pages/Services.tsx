@@ -10,7 +10,7 @@ const Services = () => {
     {
       icon: 'fas fa-video',
       title: 'Virtual Therapy Sessions',
-      description: 'One-on-one video sessions with licensed psychiatrists from the comfort of your home.',
+      description: 'One-on-one video sessions with licensed psychologist from the comfort of your home.',
       features: ['50-minute sessions', 'Secure video platform', 'Flexible scheduling', 'HIPAA compliant'],
       price: '$120',
       popular: true,
@@ -208,7 +208,7 @@ const Services = () => {
                 Book Free Consultation
               </Link>
             </Button>
-            <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white hover:text-primary">
+           <Button size="lg" variant="outline" asChild className="bg-white text-green-600 hover:bg-green-600 hover:text-white">
               <Link to="/contact">
                 <i className="fas fa-question-circle mr-2"></i>
                 Ask Questions
@@ -243,7 +243,7 @@ const Services = () => {
                 <i className="fas fa-user-md text-3xl text-accent"></i>
               </div>
               <h3 className="text-xl font-bold mb-2">Expert Care</h3>
-              <p className="text-muted-foreground">All our psychiatrists are licensed, experienced, and dedicated to your mental wellness.</p>
+              <p className="text-muted-foreground">All our psychologists are licensed, experienced, and dedicated to your mental wellness.</p>
             </div>
           </div>
         </div>

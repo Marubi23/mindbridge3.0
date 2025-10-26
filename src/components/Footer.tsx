@@ -13,7 +13,7 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-muted-foreground text-sm">
-              Professional mental health support connecting clients with licensed psychiatrists.
+              Professional mental health support connecting clients with licensed psychologists.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
@@ -68,13 +68,13 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">For Psychiatrists</h3>
+            <h3 className="font-semibold mb-4">For Psychologists</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/register" className="text-muted-foreground hover:text-primary transition-colors">Join Us</Link>
               </li>
               <li>
-                <Link to="/login" className="text-muted-foreground hover:text-primary transition-colors">Psychiatrist Login</Link>
+                <Link to="/login" className="text-muted-foreground hover:text-primary transition-colors">Psychologists Login</Link>
               </li>
               <li>
                 <a href="#" className="text-muted-foreground hover:text-primary transition-colors">Dashboard</a>

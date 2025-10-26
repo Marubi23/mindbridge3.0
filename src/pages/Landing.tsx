@@ -32,7 +32,7 @@ const Landing: React.FC = () => {
           <h2 className="subtitle">Professional Mental Health Support</h2>
           <h1 className="main-title">Your Journey to Mental Wellness Starts Here</h1>
           <p className="description">
-            Connect with licensed psychiatrists, book appointments seamlessly, and receive personalized care in a secure, supportive environment.
+            Connect with licensed psychologists, book appointments seamlessly, and receive personalized care in a secure, supportive environment.
           </p>
           
           <div className="action-buttons">
