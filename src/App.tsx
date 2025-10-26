@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AccessibilityPanel } from './components/AccessibilityPanel';
 import { Chatbot } from './components/Chatbot';
 import { Layout } from './components/Layout'; // Import Layout
-import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { ClientDashboard } from './pages/ClientDashboard';
@@ -31,7 +30,6 @@ function AppRoutes() {
   return (
     <Layout> {/* Wrap everything with Layout */}
       <Routes>
-        <Route path="/landing" element={user ? <Navigate to="/dashboard" /> : <Landing />} />
         <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Hero />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/services" element={user ? <Navigate to="/services" /> : <Services />} />
