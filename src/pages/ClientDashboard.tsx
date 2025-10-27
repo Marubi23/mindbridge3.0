@@ -5,7 +5,7 @@ import { appointmentService, assessmentService, progressService } from '../servi
 import { Appointment, Assessment, ProgressMetrics } from '../types';
 import { BookSessionModal } from '../components/BookSessionModal';
 import { AssessmentHistory } from '../components/AssessmentHistory';
-import { ProgressChart } from '@/components/progressChart';
+import { ProgressChart } from '../components/progressChart';
 
 export const ClientDashboard: React.FC = () => {
   const { user, profile } = useAuth();
