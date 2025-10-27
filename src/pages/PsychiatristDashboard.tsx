@@ -1,9 +1,7 @@
 // src/pages/PsychiatristDashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { appointmentService } from '../services/appointmentService'; // Changed to singular
-import { sessionServices } from '../services/sessionServices';
-import { assessmentServices} from '../services/assessmentService'; // Changed to singular
+import { appointmentService, sessionService, assessmentService } from '../services/supabase';
 import { Appointment, Session, Assessment } from '../types';
 import { Calendar, Users, FileText, Video, Bell } from 'lucide-react';
 import { CreateAssessmentModal } from '../components/assessments/CreateAssessmentModal';
@@ -27,8 +25,8 @@ export const PsychiatristDashboard: React.FC = () => {
     try {
       const [apptsData, sessionsData, assessmentsData] = await Promise.all([
         appointmentService.getPsychiatristAppointments(user!.id),
-        sessionServices.getActiveSessions(user!.id),
-        assessmentServices.getPsychiatristAssessments(user!.id) // Fixed: singular
+        sessionService.getActiveSessions(user!.id),
+        assessmentService.getPsychiatristAssessments(user!.id)
       ]);
       setAppointments(apptsData);
       setActiveSessions(sessionsData);
@@ -42,7 +40,7 @@ export const PsychiatristDashboard: React.FC = () => {
 
   const subscribeToRealtime = () => {
     // Subscribe to session changes
-    const subscription = sessionServices.subscribeToSessions(user!.id, (session: Session) => {
+    const subscription = sessionService.subscribeToSessions(user!.id, (session: Session) => {
       if (session.status === 'live') {
         setActiveSessions(prev => [...prev, session]);
       } else if (session.status === 'ended') {
@@ -55,11 +53,12 @@ export const PsychiatristDashboard: React.FC = () => {
 
   const startSession = async (appointmentId: string) => {
     try {
-      const session = await sessionServices.startSession(appointmentId);
+      // Note: You'll need to add startSession method to your sessionService
+      const session = await sessionService.startSession(appointmentId);
       setActiveSessions(prev => [...prev, session]);
       
       // Send notification to client
-      await sessionServices.notifySessionStart(appointmentId);
+      await sessionService.notifySessionStart(appointmentId);
     } catch (error) {
       console.error('Error starting session:', error);
     }
@@ -72,7 +71,7 @@ export const PsychiatristDashboard: React.FC = () => {
     client_id: string;
   }) => {
     try {
-      const newAssessment = await assessmentServices.createAssessment({ // Fixed: singular
+      const newAssessment = await assessmentService.createAssessment({
         ...assessmentData,
         psychiatrist_id: user!.id
       });
@@ -84,7 +83,11 @@ export const PsychiatristDashboard: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      </div>
+    );
   }
 
   return (
