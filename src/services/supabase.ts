@@ -1,5 +1,5 @@
 // src/services/supabase.ts - TEMPORARY MOCK VERSION
-import { User, UserRole, Appointment, Assessment, ProgressMetrics, BookingParams, Session } from '../types';
+import { User, UserRole, Appointment, Assessment, ProgressMetrics, BookingParams, Session, Psychiatrist, Client } from '../types';
 
 // Mock data
 const mockAppointments: Appointment[] = [
@@ -12,7 +12,6 @@ const mockAppointments: Appointment[] = [
     status: 'confirmed',
     session_type: 'video',
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
     clients: {
       id: 'mock-user-id',
       email: 'client@example.com',
@@ -42,7 +41,6 @@ const mockAppointments: Appointment[] = [
     status: 'scheduled',
     session_type: 'audio',
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
     clients: {
       id: 'mock-user-id',
       email: 'client@example.com',
@@ -287,7 +285,6 @@ export const appointmentService = {
     const appointment = mockAppointments.find(apt => apt.id === appointmentId);
     if (appointment) {
       appointment.status = 'cancelled';
-      appointment.updated_at = new Date().toISOString();
     }
   },
 
@@ -297,7 +294,6 @@ export const appointmentService = {
     const appointment = mockAppointments.find(apt => apt.id === appointmentId);
     if (appointment) {
       appointment.scheduled_for = newDate;
-      appointment.updated_at = new Date().toISOString();
       return appointment;
     }
     throw new Error('Appointment not found');
@@ -312,7 +308,6 @@ export const appointmentService = {
       ...bookingData,
       status: 'scheduled',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
       clients: {
         id: 'mock-user-id',
         email: 'client@example.com',
@@ -344,7 +339,6 @@ export const appointmentService = {
     const appointment = mockAppointments.find(apt => apt.id === appointmentId);
     if (appointment) {
       appointment.status = 'confirmed';
-      appointment.updated_at = new Date().toISOString();
       return appointment;
     }
     throw new Error('Appointment not found');
@@ -357,7 +351,6 @@ export const appointmentService = {
     if (appointment) {
       appointment.status = 'completed';
       appointment.notes = notes;
-      appointment.updated_at = new Date().toISOString();
       return appointment;
     }
     throw new Error('Appointment not found');
@@ -478,7 +471,7 @@ export const progressService = {
   }
 };
 
-// Mock session service - UPDATED WITH MISSING METHODS
+// Mock session service - FIXED VERSION
 export const sessionService = {
   async getActiveSessions(psychiatristId: string): Promise<Session[]> {
     console.log('Mock getActiveSessions called:', psychiatristId);
@@ -507,7 +500,6 @@ export const sessionService = {
     return { room_url: `https://meet.jit.si/mock-room-${appointmentId}` };
   },
 
-  // ADDED: Missing method for starting sessions
   async startSession(appointmentId: string): Promise<Session> {
     console.log('Mock startSession called:', appointmentId);
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -524,27 +516,24 @@ export const sessionService = {
     return newSession;
   },
 
-  // ADDED: Missing method for session notifications
   async notifySessionStart(appointmentId: string): Promise<void> {
     console.log('Mock notifySessionStart called:', appointmentId);
     await new Promise(resolve => setTimeout(resolve, 300));
-    // Simulate notification sent to client
     console.log(`Notification sent for appointment ${appointmentId}`);
   },
 
-  // ADDED: Method to end sessions
   async endSession(sessionId: string): Promise<void> {
     console.log('Mock endSession called:', sessionId);
     await new Promise(resolve => setTimeout(resolve, 500));
     
     const sessionIndex = mockActiveSessions.findIndex(session => session.id === sessionId);
     if (sessionIndex !== -1) {
-      mockActiveSessions.splice(sessionIndex, 1);
+      const session = mockActiveSessions[sessionIndex];
+      session.status = 'ended';
+      session.ended_at = new Date().toISOString();
     }
   }
 };
-
-
 
 export default {
   supabase,

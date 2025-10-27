@@ -1,11 +1,8 @@
-// src/pages/ClientDashboard.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ProgressChart } from './ProgressChart';
 import { useAuth } from '../contexts/AuthContext';
 import { appointmentService, assessmentService, progressService } from '../services/supabase';
 import { Appointment, Assessment, ProgressMetrics } from '../types';
-import { BookSessionModal } from '../components/BookSessionModal';
-import { AssessmentHistory } from '../components/AssessmentHistory';
-import { ProgressChart } from '../components/progressChart';
 
 export const ClientDashboard: React.FC = () => {
   const { user, profile } = useAuth();
@@ -17,398 +14,403 @@ export const ClientDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'appointments' | 'progress' | 'assessments'>('appointments');
 
   useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        if (user?.id) {
+          const [appointmentsData, assessmentsData, progressData] = await Promise.all([
+            appointmentService.getClientAppointments(user.id),
+            assessmentService.getClientAssessments(user.id),
+            progressService.getClientProgress(user.id)
+          ]);
+
+          setAppointments(appointmentsData || []);
+          setAssessments(assessmentsData || []);
+          setProgress(progressData);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setAppointments([]);
+        setAssessments([]);
+        setProgress(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, [user]);
 
-  const loadDashboardData = async () => {
+  // Safe date filtering with fallbacks
+  const upcomingAppointments = appointments.filter(apt => {
     try {
-      setLoading(true);
-      const [appointmentsData, assessmentsData, progressData] = await Promise.all([
-        appointmentService.getClientAppointments(user!.id),
-        assessmentService.getClientAssessments(user!.id),
-        progressService.getClientProgress(user!.id)
-      ]);
-      
-      setAppointments(appointmentsData);
-      setAssessments(assessmentsData);
-      setProgress(progressData);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
+      const aptDate = new Date(apt.scheduled_for);
+      const now = new Date();
+      return aptDate >= now && apt.status !== 'cancelled' && apt.status !== 'completed';
+    } catch {
+      return false;
+    }
+  });
+
+  const pastAppointments = appointments.filter(apt => {
+    try {
+      const aptDate = new Date(apt.scheduled_for);
+      const now = new Date();
+      return aptDate < now || apt.status === 'completed';
+    } catch {
+      return false;
+    }
+  });
+
+  // Safe display name function
+  const getDisplayName = () => {
+    if (user?.email) return user.email.split('@')[0];
+    return 'there';
+  };
+
+  // Safe date formatting
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'Invalid date';
     }
   };
 
-  const handleJoinSession = (appointment: Appointment) => {
-    // Implementation for joining video session
-    window.open(`/session/${appointment.id}`, '_blank');
-  };
-
-  const handleCancelAppointment = async (appointmentId: string) => {
-    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
-    
+  const formatTime = (dateString: string) => {
     try {
-      await appointmentService.cancelAppointment(appointmentId);
-      await loadDashboardData(); // Refresh data
-    } catch (error) {
-      console.error('Error canceling appointment:', error);
-      alert('Failed to cancel appointment');
+      return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return 'Invalid time';
     }
   };
-
-  const upcomingAppointments = appointments.filter(apt => 
-    new Date(apt.scheduled_for) > new Date() && 
-    ['scheduled', 'confirmed'].includes(apt.status)
-  );
-
-  const pastAppointments = appointments.filter(apt => 
-    new Date(apt.scheduled_for) <= new Date() || 
-    ['completed', 'cancelled'].includes(apt.status)
-  );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="h-64 bg-gray-200 rounded"></div>
+                <div className="h-48 bg-gray-200 rounded"></div>
+              </div>
+              <div className="space-y-6">
+                <div className="h-32 bg-gray-200 rounded"></div>
+                <div className="h-48 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Welcome back, {profile?.first_name}!
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Here's your mental wellness overview
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Next session</p>
-                <p className="font-medium">
-                  {upcomingAppointments.length > 0 
-                    ? new Date(upcomingAppointments[0].scheduled_for).toLocaleDateString()
-                    : 'No upcoming sessions'
-                  }
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                <span className="text-teal-600 font-bold text-lg">
-                  {profile?.first_name?.charAt(0)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Upcoming Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">{upcomingAppointments.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {pastAppointments.filter(apt => apt.status === 'completed').length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Wellness Score</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {progress?.current_score || 'N/A'}
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome back, {getDisplayName()}!
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Here's your mental wellness overview
+          </p>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <nav className="flex space-x-8 px-6">
-            {[
-              { id: 'appointments', name: 'Appointments', count: appointments.length },
-              { id: 'progress', name: 'Progress', count: assessments.length },
-              { id: 'assessments', name: 'Assessments', count: assessments.length }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-teal-500 text-teal-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.name}
-                {tab.count > 0 && (
-                  <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2 rounded-full text-xs">
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {activeTab === 'appointments' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Your Appointments</h2>
-                  <button 
-                    onClick={() => setShowBookingModal(true)}
-                    className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 flex items-center"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Book New Session
-                  </button>
-                </div>
-
-                {/* Upcoming Appointments */}
-                <div className="bg-white shadow rounded-lg mb-8">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">Upcoming Sessions</h3>
-                  </div>
-                  {upcomingAppointments.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500">
-                      <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="mt-4">No upcoming appointments</p>
-                      <button 
-                        onClick={() => setShowBookingModal(true)}
-                        className="mt-2 text-teal-600 hover:text-teal-700"
-                      >
-                        Book your first session
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-200">
-                      {upcomingAppointments.map((appointment) => (
-                        <div key={appointment.id} className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-                                  <span className="text-teal-600 font-bold">
-                                    Dr. {appointment.psychiatrists.last_name?.charAt(0)}
-                                  </span>
-                                </div>
-                                <div>
-                                  <h3 className="text-lg font-medium text-gray-900">
-                                    Session with Dr. {appointment.psychiatrists.last_name}
-                                  </h3>
-                                  <p className="text-gray-500">
-                                    {new Date(appointment.scheduled_for).toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="mt-2 flex items-center space-x-4">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  appointment.status === 'scheduled' 
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : appointment.status === 'confirmed'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {appointment.status}
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                  Duration: {appointment.duration} minutes
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex space-x-2">
-                              <button 
-                                onClick={() => handleJoinSession(appointment)}
-                                className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 text-sm"
-                              >
-                                Join Session
-                              </button>
-                              <button 
-                                onClick={() => handleCancelAppointment(appointment.id)}
-                                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 text-sm"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Past Appointments */}
-                {pastAppointments.length > 0 && (
-                  <div className="bg-white shadow rounded-lg">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                      <h3 className="text-lg font-medium text-gray-900">Session History</h3>
-                    </div>
-                    <div className="divide-y divide-gray-200">
-                      {pastAppointments.slice(0, 5).map((appointment) => (
-                        <div key={appointment.id} className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="text-md font-medium text-gray-900">
-                                Session with Dr. {appointment.psychiatrists.last_name}
-                              </h4>
-                              <p className="text-gray-500 text-sm">
-                                {new Date(appointment.scheduled_for).toLocaleString()}
-                              </p>
-                            </div>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              appointment.status === 'completed' 
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {appointment.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'progress' && progress && (
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Progress and Assessments */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Progress Chart */}
+            {progress && (
               <ProgressChart progress={progress} />
             )}
 
-            {activeTab === 'assessments' && (
-              <AssessmentHistory assessments={assessments} />
-            )}
+            {/* Tab Navigation */}
+            <div className="bg-white shadow rounded-lg">
+              <div className="border-b border-gray-200">
+                <nav className="flex -mb-px">
+                  <button
+                    onClick={() => setActiveTab('appointments')}
+                    className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                      activeTab === 'appointments'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Appointments
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('assessments')}
+                    className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                      activeTab === 'assessments'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Assessments
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('progress')}
+                    className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
+                      activeTab === 'progress'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    Progress History
+                  </button>
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {activeTab === 'appointments' && (
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-semibold">Your Appointments</h3>
+                      <button
+                        onClick={() => setShowBookingModal(true)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Book New Session
+                      </button>
+                    </div>
+
+                    {/* Upcoming Appointments */}
+                    <div className="mb-8">
+                      <h4 className="font-medium text-gray-900 mb-4">Upcoming Sessions</h4>
+                      {upcomingAppointments.length > 0 ? (
+                        <div className="space-y-4">
+                          {upcomingAppointments.map((appointment) => (
+                            <div
+                              key={appointment.id}
+                              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-gray-900 capitalize">
+                                    {appointment.session_type || 'therapy'} Session
+                                  </p>
+                                  <p className="text-gray-600">
+                                    with Dr. {appointment.psychiatrists?.last_name || 'Unknown'}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {formatDate(appointment.scheduled_for)} at {formatTime(appointment.scheduled_for)}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    Duration: {appointment.duration || 60} minutes
+                                  </p>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  appointment.status === 'confirmed' 
+                                    ? 'bg-green-100 text-green-800'
+                                    : appointment.status === 'scheduled'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {appointment.status || 'scheduled'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">No upcoming appointments</p>
+                      )}
+                    </div>
+
+                    {/* Past Appointments */}
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-4">Past Sessions</h4>
+                      {pastAppointments.length > 0 ? (
+                        <div className="space-y-4">
+                          {pastAppointments.slice(0, 3).map((appointment) => (
+                            <div
+                              key={appointment.id}
+                              className="border border-gray-200 rounded-lg p-4 opacity-75"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-gray-900 capitalize">
+                                    {appointment.session_type || 'therapy'} Session
+                                  </p>
+                                  <p className="text-gray-600">
+                                    with Dr. {appointment.psychiatrists?.last_name || 'Unknown'}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {formatDate(appointment.scheduled_for)}
+                                  </p>
+                                </div>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  Completed
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">No past appointments</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'assessments' && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-6">Your Assessments</h3>
+                    {assessments.length > 0 ? (
+                      <div className="space-y-4">
+                        {assessments.map((assessment) => (
+                          <div
+                            key={assessment.id}
+                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium text-gray-900">{assessment.title || 'Untitled Assessment'}</p>
+                                <p className="text-sm text-gray-500">
+                                  {assessment.completed_at 
+                                    ? `Completed on ${formatDate(assessment.completed_at)}`
+                                    : 'Not completed'
+                                  }
+                                </p>
+                                {assessment.score !== undefined && (
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Score: <span className="font-medium">{assessment.score}</span>/{assessment.max_score || 100}
+                                    {assessment.results?.severity && (
+                                      <span className="ml-2">- {assessment.results.severity}</span>
+                                    )}
+                                  </p>
+                                )}
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                assessment.status === 'completed' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : assessment.status === 'active'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {assessment.status || 'draft'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-8">No assessments completed yet</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'progress' && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-6">Progress History</h3>
+                    <div className="text-center py-8">
+                      <div className="text-gray-400 mb-4">
+                        <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500">Detailed progress history coming soon</p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Track your wellness journey over time with detailed charts and insights
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Right Column - Quick Actions and Resources */}
           <div className="space-y-6">
             {/* Quick Actions */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Quick Actions
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <button 
+                <button
                   onClick={() => setShowBookingModal(true)}
-                  className="w-full bg-teal-600 text-white py-2 px-4 rounded-md hover:bg-teal-700 flex items-center justify-center"
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
                   Book New Session
                 </button>
-                <button 
-                  onClick={() => setActiveTab('assessments')}
-                  className="w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50 flex items-center justify-center"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                <button className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                   Take Assessment
                 </button>
-                <button 
-                  onClick={() => setActiveTab('progress')}
-                  className="w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50 flex items-center justify-center"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  View Progress
+                <button className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                  View Resources
+                </button>
+                <button className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                  Emergency Contacts
                 </button>
               </div>
             </div>
 
-            {/* Emergency Resources */}
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-red-800 mb-2">
-                Need Immediate Help?
-              </h3>
-              <p className="text-red-700 text-sm mb-4">
-                If you're experiencing a mental health emergency, please contact:
+            {/* Today's Tip */}
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
+              <h3 className="font-semibold mb-2">Today's Wellness Tip</h3>
+              <p className="text-sm opacity-90">
+                Practice 5 minutes of deep breathing exercises. Focus on slow, steady breaths to calm your nervous system.
               </p>
-              <div className="space-y-2">
-                <a href="tel:988" className="block text-red-600 hover:text-red-700 text-sm">
-                  🗣️ National Suicide Prevention Lifeline: 988
-                </a>
-                <a href="tel:741741" className="block text-red-600 hover:text-red-700 text-sm">
-                  💬 Crisis Text Line: Text HOME to 741741
-                </a>
-              </div>
             </div>
 
             {/* Recent Activity */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Recent Activity
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
               <div className="space-y-3">
-                {appointments.slice(0, 3).map((appointment) => (
-                  <div key={appointment.id} className="flex items-center text-sm">
-                    <div className={`w-2 h-2 rounded-full mr-3 ${
-                      appointment.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
-                    }`}></div>
-                    <span className="text-gray-600">
-                      Session with Dr. {appointment.psychiatrists.last_name}
-                    </span>
-                  </div>
-                ))}
+                <div className="flex items-center space-x-3 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-gray-600">Completed PHQ-9 assessment</span>
+                  <span className="text-gray-400 text-xs">2 days ago</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-gray-600">Therapy session with Dr. Smith</span>
+                  <span className="text-gray-400 text-xs">1 week ago</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-gray-600">Started meditation practice</span>
+                  <span className="text-gray-400 text-xs">2 weeks ago</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* Modals */}
+      {/* Booking Modal Placeholder */}
       {showBookingModal && (
-        <BookSessionModal 
-          onClose={() => setShowBookingModal(false)}
-          onBooked={loadDashboardData}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-semibold mb-4">Book New Session</h3>
+            <p className="text-gray-600 mb-6">
+              Booking functionality will be implemented here.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowBookingModal(false)}
+                className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setShowBookingModal(false)}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 };
+
+export default ClientDashboard;

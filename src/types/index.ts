@@ -9,6 +9,7 @@ export interface User {
   avatar_url?: string;
   bio?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Profile extends User {
@@ -22,12 +23,15 @@ export interface Psychiatrist extends User {
   availability: any;
   license_number?: string;
   is_verified: boolean;
+  education?: string[];
+  languages?: string[];
 }
 
 export interface Client extends User {
   date_of_birth?: string;
   emergency_contact?: string;
   insurance_provider?: string;
+  primary_concern?: string;
 }
 
 export interface Appointment {
@@ -41,7 +45,7 @@ export interface Appointment {
   notes?: string;
   created_at: string;
   updated_at?: string;
-  clients: User;
+  clients: Client;
   psychiatrists: Psychiatrist;
 }
 
@@ -53,6 +57,8 @@ export interface Session {
   status: 'scheduled' | 'live' | 'ended';
   room_id?: string;
   recording_url?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Assessment {
@@ -72,11 +78,14 @@ export interface Assessment {
   created_at: string;
   updated_at: string;
   psychiatrists?: {
+    id?: string;
     first_name: string;
     last_name: string;
     specialization: string;
+    email?: string;
   };
   clients?: {
+    id?: string;
     first_name: string;
     last_name: string;
     email: string;
@@ -101,6 +110,8 @@ export interface AssessmentResponse {
   score?: number;
   max_score?: number;
   submitted_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Answer {
@@ -108,7 +119,6 @@ export interface Answer {
   answer: string | number | string[];
 }
 
-// ADD THIS MISSING TYPE:
 export interface ProgressMetrics {
   client_id: string;
   current_score: number;
@@ -118,6 +128,8 @@ export interface ProgressMetrics {
   last_updated: string;
   assessment_count?: number;
   session_count?: number;
+  goals?: string[];
+  recommendations?: string[];
 }
 
 export interface Notification {
@@ -138,6 +150,8 @@ export interface AvailabilitySlot {
   end_time: string;
   day_of_week: number;
   is_recurring: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BookingParams {
@@ -171,6 +185,7 @@ export interface AssessmentFormData {
   questions: Question[];
   psychiatrist_id: string;
   client_id: string;
+  type?: string;
 }
 
 export interface AppointmentFormData {
@@ -179,4 +194,149 @@ export interface AppointmentFormData {
   session_type: 'video' | 'audio' | 'chat';
   duration: number;
   notes?: string;
+}
+
+// Auth types
+export interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+export interface SignupFormData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  first_name: string;
+  last_name: string;
+  role: UserRole;
+  phone?: string;
+  specialization?: string; // For psychiatrists
+  experience_years?: number; // For psychiatrists
+  date_of_birth?: string; // For clients
+}
+
+// Context types
+export interface AuthContextType {
+  user: User | null;
+  profile: Profile | null;
+  loading: boolean;
+  signUp: (email: string, password: string, userData: any) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  updateProfile: (data: Partial<Profile>) => Promise<void>;
+}
+
+// Dashboard stats types
+export interface DashboardStats {
+  totalAppointments: number;
+  upcomingAppointments: number;
+  completedSessions: number;
+  pendingAssessments: number;
+  totalPatients?: number; // For psychiatrists
+  wellnessScore?: number; // For clients
+}
+
+// Chat/Messaging types
+export interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  message_type: 'text' | 'file' | 'system';
+  is_read: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface Conversation {
+  id: string;
+  participant1_id: string;
+  participant2_id: string;
+  last_message?: Message;
+  created_at: string;
+  updated_at: string;
+}
+
+// Payment types
+export interface Payment {
+  id: string;
+  appointment_id: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  payment_method: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// File upload types
+export interface UploadedFile {
+  id: string;
+  filename: string;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  url: string;
+  uploaded_by: string;
+  created_at: string;
+}
+
+// Settings types
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  notifications: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+  privacy: {
+    profile_visibility: 'public' | 'private' | 'contacts_only';
+    show_online_status: boolean;
+  };
+  theme: 'light' | 'dark' | 'auto';
+  created_at: string;
+  updated_at: string;
+}
+
+// Emergency contact types
+export interface EmergencyContact {
+  id: string;
+  user_id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  email?: string;
+  is_primary: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Medication types (for future use)
+export interface Medication {
+  id: string;
+  user_id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  prescribed_by: string;
+  start_date: string;
+  end_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Treatment plan types (for future use)
+export interface TreatmentPlan {
+  id: string;
+  client_id: string;
+  psychiatrist_id: string;
+  title: string;
+  description: string;
+  goals: string[];
+  duration_weeks: number;
+  status: 'active' | 'completed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
 }
