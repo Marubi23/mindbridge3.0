@@ -53,7 +53,6 @@ export const PsychiatristDashboard: React.FC = () => {
 
   const startSession = async (appointmentId: string) => {
     try {
-      // Note: You'll need to add startSession method to your sessionService
       const session = await sessionService.startSession(appointmentId);
       setActiveSessions(prev => [...prev, session]);
       
@@ -123,7 +122,10 @@ export const PsychiatristDashboard: React.FC = () => {
                     </div>
                     <Video className="w-8 h-8 text-green-600" />
                   </div>
-                  <button className="w-full mt-4 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+                  <button 
+                    onClick={() => sessionService.joinSession(session.appointment_id)}
+                    className="w-full mt-4 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
+                  >
                     Join Session
                   </button>
                 </div>
